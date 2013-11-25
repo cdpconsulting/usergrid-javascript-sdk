@@ -263,34 +263,40 @@
       //call completed
       clearTimeout(timeout);
       //decode the response
-      response = JSON.parse(xhr.responseText);
+      try{
+        response = JSON.parse(xhr.responseText);
+      }catch (e){
+        response = {error:'unhandled_error',error_description:xhr.responseText};
+        xhr.status = xhr.status === 200 ? 400 : xhr.status;
+        console.error(e);
+      }
       if (xhr.status != 200) {
-      //there was an api error
-      var error = response.error;
-      var error_description = response.error_description;
-      if (self.logging) {
-        console.log('Error (' + xhr.status + ')(' + error + '): ' + error_description);
-      }
-      if ((error == "auth_expired_session_token") ||
-        (error == "auth_missing_credentials") ||
-        (error == "auth_unverified_oath") ||
-        (error == "expired_token") ||
-        (error == "unauthorized") ||
-        (error == "auth_invalid")) {
-        //these errors mean the user is not authorized for whatever reason. If a logout function is defined, call it
-        //if the user has specified a logout callback:
-        if (typeof(self.logoutCallback) === 'function') {
-        return self.logoutCallback(true, response);
+          //there was an api error
+          var error = response.error;
+          var error_description = response.error_description;
+          if (self.logging) {
+            console.log('Error (' + xhr.status + ')(' + error + '): ' + error_description);
+          }
+          if ((error == "auth_expired_session_token") ||
+            (error == "auth_missing_credentials") ||
+            (error == "auth_unverified_oath") ||
+            (error == "expired_token") ||
+            (error == "unauthorized") ||
+            (error == "auth_invalid")) {
+            //these errors mean the user is not authorized for whatever reason. If a logout function is defined, call it
+            //if the user has specified a logout callback:
+            if (typeof(self.logoutCallback) === 'function') {
+              return self.logoutCallback(true, response);
+            }
+          }
+          if (typeof(callback) === 'function') {
+            callback(true, response);
+          }
+        } else {
+          if (typeof(callback) === 'function') {
+            callback(false, response);
+          }
         }
-      }
-      if (typeof(callback) === 'function') {
-        callback(true, response);
-      }
-      } else {
-      if (typeof(callback) === 'function') {
-        callback(false, response);
-      }
-      }
     };
 
     var timeout = setTimeout(
