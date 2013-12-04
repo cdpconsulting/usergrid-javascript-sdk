@@ -59,7 +59,7 @@
     this.authType = options.authType || AUTH_NONE;
     this.clientId = options.clientId;
     this.clientSecret = options.clientSecret;
-    this.token = options.token || null;
+    this.setToken(options.token || null);
 
     //other options
     this.buildCurl = options.buildCurl || false;
