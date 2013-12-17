@@ -23,8 +23,9 @@ var successCount = 0;
 var logError = true;
 var errorCount = 0;
 var logNotice = true;
-var _username = 'marty2';
-var _email = 'marty2@timetravel.com';
+var _unique = new Date().getTime();
+var _username = 'marty'+_unique;
+var _email = 'marty'+_unique+'@timetravel.com';
 var _password = 'password2';
 var _newpassword = 'password3';
 
@@ -291,7 +292,7 @@ function makeNewDog(step) {
 
 	var options = {
 		type:'dogs',
-		name:'Rocky'
+		name:'Ralph'+_unique
 	}
 
 	client.createEntity(options, function (err, dog) {
@@ -377,7 +378,7 @@ function makeSampleData(step, i) {
 
 	var options = {
 		type:'dogs',
-		name:'dog'+i,
+		name:'dog'+_unique+i,
 		index:i
 	}
 
@@ -544,7 +545,6 @@ function cleanupAllDogs(step){
 	});
 }
 
-
 function prepareDatabaseForNewUser(step) {
 	var options = {
 		method:'DELETE',
@@ -561,7 +561,6 @@ function prepareDatabaseForNewUser(step) {
 		}
 	});
 }
-
 
 function createUser(step) {
 	client.signup(_username, _password, _email, 'Marty McFly',
