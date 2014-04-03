@@ -23,30 +23,29 @@
 
 //define the console.log for IE
 window.console = window.console || {};
-window.console.log = window.console.log || function() {};
+window.console.log = window.console.log || function () { };
 
 //Usergrid namespace encapsulates this SDK
 window.Usergrid = window.Usergrid || {};
 Usergrid = Usergrid || {};
-Usergrid.SDK_VERSION = '0.10.03';
+Usergrid.SDK_VERSION = '0.10.04';
 
-Usergrid.Client = function(options) {
-  //usergrid enpoint
-  this.URI = options.URI || 'https://api.usergrid.com';
+Usergrid.Client = function (options) {
+    //usergrid enpoint
+    this.URI = options.URI || 'https://api.usergrid.com';
 
-  //Find your Orgname and Appname in the Admin portal (http://apigee.com/usergrid)
-  this.orgName = options.orgName;
-  this.appName = options.appName;
+    //Find your Orgname and Appname in the Admin portal (http://apigee.com/usergrid)
+    this.orgName = options.orgName;
+    this.appName = options.appName;
 
-  //other options
-  this.buildCurl = options.buildCurl || false;
-  this.logging = options.logging || false;
+    //other options
+    this.buildCurl = options.buildCurl || false;
+    this.logging = options.logging || false;
 
-  //timeout and callbacks
-  this._callTimeout =  options.callTimeout || 30000; //default to 30 seconds
-  this._callTimeoutCallback =  options.callTimeoutCallback || null;
-  this.logoutCallback =  options.logoutCallback || null;
-
+    //timeout and callbacks
+    this._callTimeout = options.callTimeout || 30000; //default to 30 seconds
+    this._callTimeoutCallback = options.callTimeoutCallback || null;
+    this.logoutCallback = options.logoutCallback || null;
 };
 
 /*
@@ -66,121 +65,121 @@ Usergrid.Client = function(options) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.request = function (options, callback) {
-  var self = this;
-  var method = options.method || 'GET';
-  var endpoint = options.endpoint;
-  var body = options.body || {};
-  var qs = options.qs || {};
-  var mQuery = options.mQuery || false; //is this a query to the management endpoint?
-  if (mQuery) {
-    var uri = this.URI + '/' + endpoint;
-  } else {
-    var uri = this.URI + '/' + this.orgName + '/' + this.appName + '/' + endpoint;
-  }
-
-  if (self.getToken()) {
-    qs['access_token'] = self.getToken();
-    /* //could also use headers for the token
-    xhr.setRequestHeader("Authorization", "Bearer " + self.getToken());
-    xhr.withCredentials = true;
-    */
-  }
-
-  //append params to the path
-  var encoded_params = encodeParams(qs);
-  if (encoded_params) {
-    uri += "?" + encoded_params;
-  }
-
-  //stringify the body object
-  body = JSON.stringify(body);
-
-  //so far so good, so run the query
-  var xhr = new XMLHttpRequest();
-  xhr.open(method, uri, true);
-  //add content type = json if there is a json payload
-  if (body) {
-    xhr.setRequestHeader("Content-Type", "application/json");
-  }
-
-  // Handle response.
-  xhr.onerror = function() {
-    self._end = new Date().getTime();
-    if (self.logging) {
-      console.log('success (time: ' + self.calcTimeDiff() + '): ' + method + ' ' + uri);
-    }
-    if (self.logging) {
-      console.log('Error: API call failed at the network level.')
-    }
-    //network error
-    clearTimeout(timeout);
-    var err = true;
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  };
-
-  xhr.onload = function(response) {
-    //call timing, get time, then log the call
-    self._end = new Date().getTime();
-    if (self.logging) {
-      console.log('success (time: ' + self.calcTimeDiff() + '): ' + method + ' ' + uri);
-    }
-    //call completed
-    clearTimeout(timeout);
-    //decode the response
-    response = JSON.parse(xhr.responseText);
-    if (xhr.status != 200)   {
-      //there was an api error
-      var error = response.error;
-      var error_description = response.error_description;
-      if (self.logging) {
-        console.log('Error ('+ xhr.status +')(' + error + '): ' + error_description )
-      }
-      if ( (error == "auth_expired_session_token") ||
-           (error == "unauthorized")   ||
-           (error == "auth_missing_credentials")   ||
-           (error == "auth_invalid")) {
-        //this error type means the user is not authorized. If a logout function is defined, call it
-        //if the user has specified a logout callback:
-        if (typeof(self.logoutCallback) === 'function') {
-          return self.logoutCallback(true, response);
-        }
-      }
-      if (typeof(callback) === 'function') {
-        callback(true, response);
-      }
+    var self = this;
+    var method = options.method || 'GET';
+    var endpoint = options.endpoint;
+    var body = options.body || {};
+    var qs = options.qs || {};
+    var mQuery = options.mQuery || false; //is this a query to the management endpoint?
+    if (mQuery) {
+        var uri = this.URI + '/' + endpoint;
     } else {
-      if (typeof(callback) === 'function') {
-        callback(false, response);
-      }
+        var uri = this.URI + '/' + this.orgName + '/' + this.appName + '/' + endpoint;
     }
-  };
 
-  var timeout = setTimeout(
-    function() {
-      xhr.abort();
-      if (self._callTimeoutCallback === 'function') {
-        self._callTimeoutCallback('API CALL TIMEOUT');
-      } else {
-        self.callback('API CALL TIMEOUT');
-      }
-    },
-    self._callTimeout); //set for 30 seconds
-
-  if (this.logging) {
-    console.log('calling: ' + method + ' ' + uri);
-  }
-  if (this.buildCurl) {
-    var curlOptions = {
-      uri:uri,
-      body:body,
-      method:method
+    if (self.getToken()) {
+        qs['access_token'] = self.getToken();
+        /* //could also use headers for the token
+        xhr.setRequestHeader("Authorization", "Bearer " + self.getToken());
+        xhr.withCredentials = true;
+        */
     }
-    this.buildCurlCall(curlOptions);
-  }
-  this._start = new Date().getTime();
-  xhr.send(body);
+
+    //append params to the path
+    var encoded_params = encodeParams(qs);
+    if (encoded_params) {
+        uri += "?" + encoded_params;
+    }
+
+    //stringify the body object
+    body = JSON.stringify(body);
+
+    //so far so good, so run the query
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, uri, true);
+    //add content type = json if there is a json payload
+    if (body) {
+        xhr.setRequestHeader("Content-Type", "application/json");
+    }
+
+    // Handle response.
+    xhr.onerror = function () {
+        self._end = new Date().getTime();
+        if (self.logging) {
+            console.log('success (time: ' + self.calcTimeDiff() + '): ' + method + ' ' + uri);
+        }
+        if (self.logging) {
+            console.log('Error: API call failed at the network level.')
+        }
+        //network error
+        clearTimeout(timeout);
+        var err = true;
+        if (typeof (callback) === 'function') {
+            callback(err, data, xhr.status);
+        }
+    };
+
+    xhr.onload = function (response) {
+        //call timing, get time, then log the call
+        self._end = new Date().getTime();
+        if (self.logging) {
+            console.log('success (time: ' + self.calcTimeDiff() + '): ' + method + ' ' + uri);
+        }
+        //call completed
+        clearTimeout(timeout);
+        //decode the response
+        response = JSON.parse(xhr.responseText);
+        if (xhr.status != 200) {
+            //there was an api error
+            var error = response.error;
+            var error_description = response.error_description;
+            if (self.logging) {
+                console.log('Error (' + xhr.status + ')(' + error + '): ' + error_description)
+            }
+            if ((error == "auth_expired_session_token") ||
+                 (error == "unauthorized") ||
+                 (error == "auth_missing_credentials") ||
+                 (error == "auth_invalid")) {
+                //this error type means the user is not authorized. If a logout function is defined, call it
+                //if the user has specified a logout callback:
+                if (typeof (self.logoutCallback) === 'function') {
+                    return self.logoutCallback(true, response);
+                }
+            }
+            if (typeof (callback) === 'function') {
+                callback(true, response, xhr.status);
+            }
+        } else {
+            if (typeof (callback) === 'function') {
+                callback(false, response, xhr.status);
+            }
+        }
+    };
+
+    var timeout = setTimeout(
+      function () {
+          xhr.abort();
+          if (self._callTimeoutCallback === 'function') {
+              self._callTimeoutCallback('API CALL TIMEOUT');
+          } else {
+              self.callback('API CALL TIMEOUT');
+          }
+      },
+      self._callTimeout); //set for 30 seconds
+
+    if (this.logging) {
+        console.log('calling: ' + method + ' ' + uri);
+    }
+    if (this.buildCurl) {
+        var curlOptions = {
+            uri: uri,
+            body: body,
+            method: method
+        }
+        this.buildCurlCall(curlOptions);
+    }
+    this._start = new Date().getTime();
+    xhr.send(body);
 }
 
 /*
@@ -195,17 +194,72 @@ Usergrid.Client.prototype.request = function (options, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.createEntity = function (options, callback) {
-  var options = {
-    client:this,
-    data:options
-  }
-  var entity = new Usergrid.Entity(options);
-  entity.save(function(err, data) {
-    if (typeof(callback) === 'function') {
-      callback(err, entity);
+    // todo: replace the check for new / save on not found code with simple save
+    // when users PUT on no user fix is in place.
+    /*
+    var options = {
+      client:this,
+      data:options
     }
-  });
+    var entity = new Usergrid.Entity(options);
+    entity.save(function(err, data) {
+      if (typeof(callback) === 'function') {
+        callback(err, entity);
+      }
+    });
+    */
+    var getOnExist = options.getOnExist || false; //if true, will return entity if one already exists
+    var options = {
+        client: this,
+        data: options
+    }
+    var entity = new Usergrid.Entity(options);
+    entity.fetch(function (err, data) {
+        //if the fetch doesn't find what we are looking for, or there is no error, do a save
+        var okToSave = (err && 'service_resource_not_found' === data.error) || (!err && getOnExist);
+        if (okToSave) {
+            entity.set(options.data); //add the data again just in case
+            entity.save(function (err, data) {
+                if (typeof (callback) === 'function') {
+                    callback(err, entity);
+                }
+            });
+        } else {
+            if (typeof (callback) === 'function') {
+                callback(err, entity);
+            }
+        }
+    });
+
 }
+
+/*
+*  Main function for getting existing entities - should be called directly.
+*
+*  You must supply a uuid or (username or name). Username only applies to users.
+*  Name applies to all custom entities
+*
+*  options object: options {data:{'type':'collection_type', 'name':'value', 'username':'value'}, uuid:uuid}}
+*
+*  @method createEntity
+*  @public
+*  @params {object} options
+*  @param {function} callback
+*  @return {callback} callback(err, data)
+*/
+Usergrid.Client.prototype.getEntity = function (options, callback) {
+    var options = {
+        client: this,
+        data: options
+    }
+    var entity = new Usergrid.Entity(options);
+    entity.fetch(function (err, data) {
+        if (typeof (callback) === 'function') {
+            callback(err, entity);
+        }
+    });
+}
+
 
 /*
 *  Main function for creating new collections - should be called directly.
@@ -219,12 +273,12 @@ Usergrid.Client.prototype.createEntity = function (options, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.createCollection = function (options, callback) {
-  options.client = this;
-  var collection = new Usergrid.Collection(options, function(err, data) {
-    if (typeof(callback) === 'function') {
-      callback(err, collection);
-    }
-  });
+    options.client = this;
+    var collection = new Usergrid.Collection(options, function (err, data) {
+        if (typeof (callback) === 'function') {
+            callback(err, collection);
+        }
+    });
 }
 
 /*
@@ -264,29 +318,29 @@ Usergrid.Client.prototype.createCollection = function (options, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.createUserActivity = function (user, options, callback) {
-  options.type = 'users/'+user+'/activities';
-  var options = {
-    client:this,
-    data:options
-  }
-  var entity = new Usergrid.Entity(options);
-  entity.save(function(err, data) {
-    if (typeof(callback) === 'function') {
-      callback(err, entity);
+    options.type = 'users/' + user + '/activities';
+    var options = {
+        client: this,
+        data: options
     }
-  });
+    var entity = new Usergrid.Entity(options);
+    entity.save(function (err, data) {
+        if (typeof (callback) === 'function') {
+            callback(err, entity);
+        }
+    });
 }
 
 /*
 *  A private method to get call timing of last call
 */
 Usergrid.Client.prototype.calcTimeDiff = function () {
- var seconds = 0;
- var time = this._end - this._start;
- try {
-    seconds = ((time/10) / 60).toFixed(2);
- } catch(e) { return 0; }
- return seconds;
+    var seconds = 0;
+    var time = this._end - this._start;
+    try {
+        seconds = ((time / 10) / 60).toFixed(2);
+    } catch (e) { return 0; }
+    return seconds;
 }
 
 /*
@@ -298,14 +352,15 @@ Usergrid.Client.prototype.calcTimeDiff = function () {
 *  @return none
 */
 Usergrid.Client.prototype.setToken = function (token) {
-  this.token = token;
-  if(typeof(Storage)!=="undefined"){
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
+    var tokenKey = 'token' + this.appName + this.orgName;
+    this.token = token;
+    if (typeof (Storage) !== "undefined") {
+        if (token) {
+            localStorage.setItem(tokenKey, token);
+        } else {
+            localStorage.removeItem(tokenKey);
+        }
     }
-  }
 }
 
 /*
@@ -316,12 +371,13 @@ Usergrid.Client.prototype.setToken = function (token) {
 *  @return {string} token
 */
 Usergrid.Client.prototype.getToken = function () {
-  if (this.token) {
-    return this.token;
-  } else if(typeof(Storage)!=="undefined") {
-    return localStorage.getItem('token');
-  }
-  return null;
+    var tokenKey = 'token' + this.appName + this.orgName;
+    if (this.token) {
+        return this.token;
+    } else if (typeof (Storage) !== "undefined") {
+        return localStorage.getItem(tokenKey);
+    }
+    return null;
 }
 
 /*
@@ -335,28 +391,30 @@ Usergrid.Client.prototype.getToken = function () {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.login = function (username, password, callback) {
-  var self = this;
-  var options = {
-    method:'GET',
-    endpoint:'token',
-    qs:{
-      username: username,
-      password: password,
-      grant_type: 'password'
-    }
-  };
-  this.request(options, function(err, data) {
-    var user = {};
-    if (err && self.logging) {
-      console.log('error trying to log user in');
-    } else {
-      user = new Usergrid.Entity('users', data.user);
-      self.setToken(data.access_token);
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data, user);
-    }
-  });
+    var self = this;
+    var options = {
+        method: 'GET',
+        endpoint: 'token',
+        qs: {
+            username: username,
+            password: password,
+            grant_type: 'password'
+        }
+    };
+    this.request(options, function (err, data, status) {
+        var user = {};
+        if (err && self.logging) {
+            console.log('error trying to log user in');
+			if(data==null) data = {};
+			data.http_code = status;
+        } else {
+            user = new Usergrid.Entity('users', data.user);
+            self.setToken(data.access_token);
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data, user);
+        }
+    });
 }
 
 /*
@@ -370,26 +428,26 @@ Usergrid.Client.prototype.login = function (username, password, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.loginFacebook = function (facebookToken, callback) {
-  var self = this;
-  var options = {
-    method:'GET',
-    endpoint:'auth/facebook',
-    qs:{
-      fb_access_token: facebookToken
-    }
-  };
-  this.request(options, function(err, data) {
-    var user = {};
-    if (err && self.logging) {
-      console.log('error trying to log user in');
-    } else {
-      user = new Usergrid.Entity('users', data.user);
-      self.setToken(data.access_token);
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data, user);
-    }
-  });
+    var self = this;
+    var options = {
+        method: 'GET',
+        endpoint: 'auth/facebook',
+        qs: {
+            fb_access_token: facebookToken
+        }
+    };
+    this.request(options, function (err, data) {
+        var user = {};
+        if (err && self.logging) {
+            console.log('error trying to log user in');
+        } else {
+            user = new Usergrid.Entity('users', data.user);
+            self.setToken(data.access_token);
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data, user);
+        }
+    });
 }
 
 /*
@@ -401,34 +459,34 @@ Usergrid.Client.prototype.loginFacebook = function (facebookToken, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Client.prototype.getLoggedInUser = function (callback) {
-  if (!this.getToken()) {
-    callback(true, null, null);
-  } else {
-    var self = this;
-    var options = {
-      method:'GET',
-      endpoint:'users/me',
-    };
-    this.request(options, function(err, data) {
-      if (err) {
-        if (self.logging) {
-          console.log('error trying to log user in');
-        }
-        if (typeof(callback) === 'function') {
-          callback(err, data, null);
-        }
-      } else {
+    if (!this.getToken()) {
+        callback(true, null, null);
+    } else {
+        var self = this;
         var options = {
-          client:self,
-          data:data.entities[0]
-        }
-        var user = new Usergrid.Entity(options);
-        if (typeof(callback) === 'function') {
-          callback(err, data, user);
-        }
-      }
-    });
-  }
+            method: 'GET',
+            endpoint: 'users/me',
+        };
+        this.request(options, function (err, data) {
+            if (err) {
+                if (self.logging) {
+                    console.log('error trying to log user in');
+                }
+                if (typeof (callback) === 'function') {
+                    callback(err, data, null);
+                }
+            } else {
+                var options = {
+                    client: self,
+                    data: data.entities[0]
+                }
+                var user = new Usergrid.Entity(options);
+                if (typeof (callback) === 'function') {
+                    callback(err, data, user);
+                }
+            }
+        });
+    }
 }
 
 /*
@@ -440,10 +498,10 @@ Usergrid.Client.prototype.getLoggedInUser = function (callback) {
 *  @return {boolean} Returns true the user is logged in (has token and uuid), false if not
 */
 Usergrid.Client.prototype.isLoggedIn = function () {
-  if (this.getToken()) {
-    return true;
-  }
-  return false;
+    if (this.getToken()) {
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -454,7 +512,7 @@ Usergrid.Client.prototype.isLoggedIn = function () {
 *  @return none
 */
 Usergrid.Client.prototype.logout = function () {
-  this.setToken(null);
+    this.setToken(null);
 }
 
 /*
@@ -466,31 +524,30 @@ Usergrid.Client.prototype.logout = function () {
 *  @return {string} curl
 */
 Usergrid.Client.prototype.buildCurlCall = function (options) {
-  var curl = 'curl';
-  var method = (options.method || 'GET').toUpperCase();
-  var body = options.body || {};
-  var uri = options.uri;
+    var curl = 'curl';
+    var method = (options.method || 'GET').toUpperCase();
+    var body = options.body || {};
+    var uri = options.uri;
 
-  //curl - add the method to the command (no need to add anything for GET)
-  if (method === 'POST') {curl += ' -X POST'; }
-  else if (method === 'PUT') { curl += ' -X PUT'; }
-  else if (method === 'DELETE') { curl += ' -X DELETE'; }
-  else { curl += ' -X GET'; }
+    //curl - add the method to the command (no need to add anything for GET)
+    if (method === 'POST') { curl += ' -X POST'; }
+    else if (method === 'PUT') { curl += ' -X PUT'; }
+    else if (method === 'DELETE') { curl += ' -X DELETE'; }
+    else { curl += ' -X GET'; }
 
-  //curl - append the path
-  curl += ' ' + uri;
+    //curl - append the path
+    curl += ' ' + uri;
 
-  //curl - add the body
-  body = JSON.stringify(body)
-  if (body !== '"{}"' && method !== 'GET' && method !== 'DELETE') {
-    //curl - add in the json obj
-    curl += " -d '" + body + "'";
-  }
+    //curl - add the body
+    if (body !== '"{}"' && method !== 'GET' && method !== 'DELETE') {
+        //curl - add in the json obj
+        curl += " -d '" + body + "'";
+    }
 
-  //log the curl command to the console
-  console.log(curl);
+    //log the curl command to the console
+    console.log(curl);
 
-  return curl;
+    return curl;
 }
 
 
@@ -501,9 +558,9 @@ Usergrid.Client.prototype.buildCurlCall = function (options) {
 *  @constructor
 *  @param {object} options {client:client, data:{'type':'collection_type', 'key':'value'}, uuid:uuid}}
 */
-Usergrid.Entity = function(options) {
-  this._client = options.client;
-  this._data = options.data || {};
+Usergrid.Entity = function (options) {
+    this._client = options.client;
+    this._data = options.data || {};
 };
 
 /*
@@ -515,11 +572,11 @@ Usergrid.Entity = function(options) {
 *  @return {string} || {object} data
 */
 Usergrid.Entity.prototype.get = function (field) {
-  if (field) {
-    return this._data[field];
-  } else {
-    return this._data;
-  }
+    if (field) {
+        return this._data[field];
+    } else {
+        return this._data;
+    }
 }
 
 /*
@@ -533,19 +590,19 @@ Usergrid.Entity.prototype.get = function (field) {
 *  @return none
 */
 Usergrid.Entity.prototype.set = function (key, value) {
-  if (typeof key === 'object') {
-    for(var field in key) {
-      this._data[field] = key[field];
-    }
-  } else if (typeof key === 'string') {
-    if (value === null) {
-      delete this._data[key];
+    if (typeof key === 'object') {
+        for (var field in key) {
+            this._data[field] = key[field];
+        }
+    } else if (typeof key === 'string') {
+        if (value === null) {
+            delete this._data[key];
+        } else {
+            this._data[key] = value;
+        }
     } else {
-      this._data[key] = value;
+        this._data = null;
     }
-  } else {
-    this._data = null;
-  }
 }
 
 /*
@@ -557,74 +614,74 @@ Usergrid.Entity.prototype.set = function (key, value) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Entity.prototype.save = function (callback) {
-  //TODO:  API will be changed soon to accomodate PUTs via name which create new entities
-  //       This function should be changed to PUT only at that time, and updated to use
-  //       either uuid or name
-  var type = this.get('type');
-  var method = 'POST';
-  if (isUUID(this.get('uuid'))) {
-    method = 'PUT';
-    type += '/' + this.get('uuid');
-  }
-
-  //update the entity
-  var self = this;
-  var data = {};
-  var entityData = this.get();
-  //remove system specific properties
-  for (var item in entityData) {
-    if (item === 'metadata' || item === 'created' || item === 'modified' ||
-        item === 'type' || item === 'activatted' ) { continue; }
-    data[item] = entityData[item];
-  }
-  var options =  {
-    method:method,
-    endpoint:type,
-    body:data
-  };
-  //save the entity first
-  this._client.request(options, function (err, retdata) {
-    if (err && self._client.logging) {
-      console.log('could not save entity');
-      if (typeof(callback) === 'function') {
-        return callback(err, retdata, self);
-      }
-    } else {
-      if (retdata.entities.length) {
-        var entity = retdata.entities[0];
-        self.set(entity);
-      }
-      //if this is a user, update the password if it has been specified;
-      var needPasswordChange = (type === 'users' && entityData.oldpassword && entityData.newpassword);
-      if (needPasswordChange) {
-        //Note: we have a ticket in to change PUT calls to /users to accept the password change
-        //      once that is done, we will remove this call and merge it all into one
-        var pwdata = {};
-        pwdata.oldpassword = entityData.oldpassword;
-        pwdata.newpassword = entityData.newpassword;
-        this._client.request(
-          {
-            method:'PUT',
-            endpoint:type,
-            body:pwdata
-          },
-          function (err, data) {
-            if (err && self._client.logging) {
-              console.log('could not update user');
-            }
-            //remove old and new password fields so they don't end up as part of the entity object
-            self.set('oldpassword', null);
-            self.set('newpassword', null);
-            if (typeof(callback) === 'function') {
-              callback(err, data, self);
-            }
-          }
-        );
-      } else if (typeof(callback) === 'function') {
-        callback(err, retdata, self);
-      }
+    //TODO:  API will be changed soon to accomodate PUTs via name which create new entities
+    //       This function should be changed to PUT only at that time, and updated to use
+    //       either uuid or name
+    var type = this.get('type');
+    var method = 'POST';
+    if (isUUID(this.get('uuid'))) {
+        method = 'PUT';
+        type += '/' + this.get('uuid');
     }
-  });
+
+    //update the entity
+    var self = this;
+    var data = {};
+    var entityData = this.get();
+    //remove system specific properties
+    for (var item in entityData) {
+        if (item === 'metadata' || item === 'created' || item === 'modified' ||
+            item === 'type' || item === 'activatted' || item === 'uuid') { continue; }
+        data[item] = entityData[item];
+    }
+    var options = {
+        method: method,
+        endpoint: type,
+        body: data
+    };
+    //save the entity first
+    this._client.request(options, function (err, retdata) {
+        if (err && self._client.logging) {
+            console.log('could not save entity');
+            if (typeof (callback) === 'function') {
+                return callback(err, retdata, self);
+            }
+        } else {
+            if (retdata.entities) {
+                if (retdata.entities.length) {
+                    var entity = retdata.entities[0];
+                    self.set(entity);
+                }
+            }
+            //if this is a user, update the password if it has been specified;
+            var needPasswordChange = (self.get('type') === 'user' && entityData.oldpassword && entityData.newpassword);
+            if (needPasswordChange) {
+                //Note: we have a ticket in to change PUT calls to /users to accept the password change
+                //      once that is done, we will remove this call and merge it all into one
+                var pwdata = {};
+                pwdata.oldpassword = entityData.oldpassword;
+                pwdata.newpassword = entityData.newpassword;
+                var options = {
+                    method: 'PUT',
+                    endpoint: type + '/password',
+                    body: pwdata
+                }
+                self._client.request(options, function (err, data) {
+                    if (err && self._client.logging) {
+                        console.log('could not update user');
+                    }
+                    //remove old and new password fields so they don't end up as part of the entity object
+                    self.set('oldpassword', null);
+                    self.set('newpassword', null);
+                    if (typeof (callback) === 'function') {
+                        callback(err, data, self);
+                    }
+                });
+            } else if (typeof (callback) === 'function') {
+                callback(err, retdata, self);
+            }
+        }
+    });
 }
 
 /*
@@ -636,58 +693,60 @@ Usergrid.Entity.prototype.save = function (callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Entity.prototype.fetch = function (callback) {
-  var type = this.get('type');
-  var self = this;
+    var type = this.get('type');
+    var self = this;
 
-  //if a uuid is available, use that, otherwise, use the name
-  if (this.get('uuid')) {
-    type += '/' + this.get('uuid');
-  } else {
-    if (type === 'users') {
-      if (this.get('username')) {
-        type += '/' + this.get('username');
-      } else {
-        if (typeof(callback) === 'function') {
-          var error = 'cannot fetch entity, no username specified';
-          if (self._client.logging) {
-            console.log(error);
-          }
-          return callback(true, error, self)
-        }
-      }
+    //if a uuid is available, use that, otherwise, use the name
+    if (this.get('uuid')) {
+        type += '/' + this.get('uuid');
     } else {
-      if (this.get('name')) {
-        type += '/' + this.get('name');
-      } else {
-        if (typeof(callback) === 'function') {
-          var error = 'cannot fetch entity, no name specified';
-          if (self._client.logging) {
-            console.log(error);
-          }
-          return callback(true, error, self)
+        if (type === 'users') {
+            if (this.get('username')) {
+                type += '/' + this.get('username');
+            } else {
+                if (typeof (callback) === 'function') {
+                    var error = 'cannot fetch entity, no username specified';
+                    if (self._client.logging) {
+                        console.log(error);
+                    }
+                    return callback(true, error, self)
+                }
+            }
+        } else {
+            if (this.get('name')) {
+                type += '/' + this.get('name');
+            } else {
+                if (typeof (callback) === 'function') {
+                    var error = 'cannot fetch entity, no name specified';
+                    if (self._client.logging) {
+                        console.log(error);
+                    }
+                    return callback(true, error, self)
+                }
+            }
         }
-      }
     }
-  }
-  var options = {
-    method:'GET',
-    endpoint:type
-  };
-  this._client.request(options, function (err, data) {
-    if (err && self._client.logging) {
-      console.log('could not get entity');
-    } else {
-      if (data.user) {
-        self.set(data.user);
-      } else if (data.entities.length) {
-        var entity = data.entities[0];
-        self.set(entity);
-      }
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data, self);
-    }
-  });
+    var options = {
+        method: 'GET',
+        endpoint: type
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('could not get entity');
+        } else {
+            if (data.user) {
+                self.set(data.user);
+            } else if (data.entities) {
+                if (data.entities.length) {
+                    var entity = data.entities[0];
+                    self.set(entity);
+                }
+            }
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data, self);
+        }
+    });
 }
 
 /*
@@ -701,33 +760,33 @@ Usergrid.Entity.prototype.fetch = function (callback) {
 *
 */
 Usergrid.Entity.prototype.destroy = function (callback) {
-  var type = this.get('type');
-  if (isUUID(this.get('uuid'))) {
-    type += '/' + this.get('uuid');
-  } else {
-    if (typeof(callback) === 'function') {
-      var error = 'Error trying to delete object - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
-    }
-  }
-  var self = this;
-  var options = {
-    method:'DELETE',
-    endpoint:type
-  };
-  this._client.request(options, function (err, data) {
-    if (err && self._client.logging) {
-      console.log('entity could not be deleted');
+    var type = this.get('type');
+    if (isUUID(this.get('uuid'))) {
+        type += '/' + this.get('uuid');
     } else {
-      self.set(null);
+        if (typeof (callback) === 'function') {
+            var error = 'Error trying to delete object - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
     }
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  });
+    var self = this;
+    var options = {
+        method: 'DELETE',
+        endpoint: type
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('entity could not be deleted');
+        } else {
+            self.set(null);
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data);
+        }
+    });
 }
 
 /*
@@ -743,64 +802,64 @@ Usergrid.Entity.prototype.destroy = function (callback) {
 */
 Usergrid.Entity.prototype.connect = function (connection, entity, callback) {
 
-  var self = this;
+    var self = this;
 
-  //connectee info
-  var connecteeType = entity.get('type');
-  var connectee = this.getEntityId(entity);
-  if (!connectee) {
-    if (typeof(callback) === 'function') {
-      var error = 'Error trying to delete object - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
+    //connectee info
+    var connecteeType = entity.get('type');
+    var connectee = this.getEntityId(entity);
+    if (!connectee) {
+        if (typeof (callback) === 'function') {
+            var error = 'Error trying to delete object - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
+        return;
     }
-    return;
-  }
 
-  //connector info
-  var connectorType = this.get('type');
-  var connector = this.getEntityId(this);
-  if (!connector) {
-    if (typeof(callback) === 'function') {
-      var error = 'Error in connect - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
+    //connector info
+    var connectorType = this.get('type');
+    var connector = this.getEntityId(this);
+    if (!connector) {
+        if (typeof (callback) === 'function') {
+            var error = 'Error in connect - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
+        return;
     }
-    return;
-  }
 
-  var endpoint = connectorType + '/' + connector + '/' + connection + '/' + connecteeType + '/' + connectee;
-  var options = {
-    method:'POST',
-    endpoint:endpoint
-  };
-  this._client.request(options, function (err, data) {
-    if (err && self._client.logging) {
-      console.log('entity could not be connected');
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  });
+    var endpoint = connectorType + '/' + connector + '/' + connection + '/' + connecteeType + '/' + connectee;
+    var options = {
+        method: 'POST',
+        endpoint: endpoint
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('entity could not be connected');
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data);
+        }
+    });
 }
 
 
 Usergrid.Entity.prototype.getEntityId = function (entity) {
-  var id = false;
-  if (isUUID(entity.get('uuid'))) {
-    id = entity.get('uuid');
-  } else {
-    if (type === 'users') {
-      id = entity.get('username');
-    } else if (entity.get('name')) {
-      id = entity.get('name');
+    var id = false;
+    if (isUUID(entity.get('uuid'))) {
+        id = entity.get('uuid');
+    } else {
+        if (type === 'users') {
+            id = entity.get('username');
+        } else if (entity.get('name')) {
+            id = entity.get('name');
+        }
     }
-  }
-  return id;
+    return id;
 }
 
 /*
@@ -816,48 +875,47 @@ Usergrid.Entity.prototype.getEntityId = function (entity) {
 */
 Usergrid.Entity.prototype.getConnections = function (connection, callback) {
 
-  var self = this;
+    var self = this;
 
-  //connector info
-  var connectorType = this.get('type');
-  var connector = this.getEntityId(this);
-  if (!connector) {
-    if (typeof(callback) === 'function') {
-      var error = 'Error in getConnections - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
-    }
-    return;
-  }
-
-  var endpoint = connectorType + '/' + connector + '/' + connection + '/';
-  var options = {
-    method:'GET',
-    endpoint:endpoint
-  };
-  this._client.request(options, function (err, data) {
-    if (err && self._client.logging) {
-      console.log('entity could not be connected');
+    //connector info
+    var connectorType = this.get('type');
+    var connector = this.getEntityId(this);
+    if (!connector) {
+        if (typeof (callback) === 'function') {
+            var error = 'Error in getConnections - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
+        return;
     }
 
-    self[connection] = {};
+    var endpoint = connectorType + '/' + connector + '/' + connection + '/';
+    var options = {
+        method: 'GET',
+        endpoint: endpoint
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('entity could not be connected');
+        }
 
-    var length = data.entities.length;
-    for (var i=0;i<length;i++)
-    {
-      if (data.entities[i].type === 'user'){
-        self[connection][data.entities[i].username] = data.entities[i];
-      } else {
-        self[connection][data.entities[i].name] = data.entities[i]
-      }
-    }
+        self[connection] = {};
 
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  });
+        var length = data.entities.length;
+        for (var i = 0; i < length; i++) {
+            if (data.entities[i].type === 'user') {
+                self[connection][data.entities[i].username] = data.entities[i];
+            } else {
+                self[connection][data.entities[i].name] = data.entities[i]
+            }
+        }
+
+        if (typeof (callback) === 'function') {
+            callback(err, data);
+        }
+    });
 
 }
 
@@ -874,49 +932,49 @@ Usergrid.Entity.prototype.getConnections = function (connection, callback) {
 */
 Usergrid.Entity.prototype.disconnect = function (connection, entity, callback) {
 
-  var self = this;
+    var self = this;
 
-  //connectee info
-  var connecteeType = entity.get('type');
-  var connectee = this.getEntityId(entity);
-  if (!connectee) {
-    if (typeof(callback) === 'function') {
-      var error = 'Error trying to delete object - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
+    //connectee info
+    var connecteeType = entity.get('type');
+    var connectee = this.getEntityId(entity);
+    if (!connectee) {
+        if (typeof (callback) === 'function') {
+            var error = 'Error trying to delete object - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
+        return;
     }
-    return;
-  }
 
-  //connector info
-  var connectorType = this.get('type');
-  var connector = this.getEntityId(this);
-  if (!connector) {
-    if (typeof(callback) === 'function') {
-      var error = 'Error in connect - no uuid specified.';
-      if (self._client.logging) {
-        console.log(error);
-      }
-      callback(true, error);
+    //connector info
+    var connectorType = this.get('type');
+    var connector = this.getEntityId(this);
+    if (!connector) {
+        if (typeof (callback) === 'function') {
+            var error = 'Error in connect - no uuid specified.';
+            if (self._client.logging) {
+                console.log(error);
+            }
+            callback(true, error);
+        }
+        return;
     }
-    return;
-  }
 
-  var endpoint = connectorType + '/' + connector + '/' + connection + '/' + connecteeType + '/' + connectee;
-  var options = {
-    method:'DELETE',
-    endpoint:endpoint
-  };
-  this._client.request(options, function (err, data) {
-    if (err && self._client.logging) {
-      console.log('entity could not be disconnected');
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  });
+    var endpoint = connectorType + '/' + connector + '/' + connection + '/' + connecteeType + '/' + connectee;
+    var options = {
+        method: 'DELETE',
+        endpoint: endpoint
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('entity could not be disconnected');
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, data);
+        }
+    });
 }
 
 /*
@@ -929,22 +987,22 @@ Usergrid.Entity.prototype.disconnect = function (connection, entity, callback) {
 *  @param {function} callback
 *  @return {callback} callback(err, data)
 */
-Usergrid.Collection = function(options, callback) {
-  this._client = options.client;
-  this._type = options.type;
-  this.qs = options.qs || {};
+Usergrid.Collection = function (options, callback) {
+    this._client = options.client;
+    this._type = options.type;
+    this.qs = options.qs || {};
 
-  //iteration
-  this._list = [];
-  this._iterator = -1; //first thing we do is increment, so set to -1
+    //iteration
+    this._list = [];
+    this._iterator = -1; //first thing we do is increment, so set to -1
 
-  //paging
-  this._previous = [];
-  this._next = null;
-  this._cursor = null
+    //paging
+    this._previous = [];
+    this._next = null;
+    this._cursor = null
 
-  //populate the collection
-  this.fetch(callback);
+    //populate the collection
+    this.fetch(callback);
 }
 
 /*
@@ -955,53 +1013,53 @@ Usergrid.Collection = function(options, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Collection.prototype.fetch = function (callback) {
-  var self = this;
-  var qs = this.qs;
+    var self = this;
+    var qs = this.qs;
 
-  //add in the cursor if one is available
-  if (this._cursor) {
-    qs.cursor = this._cursor;
-  } else {
-    delete qs.cursor;
-  }
-  var options = {
-    method:'GET',
-    endpoint:this._type,
-    qs:this.qs
-  };
-  this._client.request(options, function (err, data) {
-    if(err && self._client.logging) {
-     console.log('error getting collection');
+    //add in the cursor if one is available
+    if (this._cursor) {
+        qs.cursor = this._cursor;
     } else {
-      //save the cursor if there is one
-      var cursor = data.cursor || null;
-      self.saveCursor(cursor);
-      if (data.entities) {
-        self.resetEntityPointer();
-        var count = data.entities.length;
-        //save entities locally
-        self._list = []; //clear the local list first
-        for (var i=0;i<count;i++) {
-          var uuid = data.entities[i].uuid;
-          if (uuid) {
-            var entityData = data.entities[i] || {};
-            var entityOptions = {
-              type:self._type,
-              client:self._client,
-              uuid:uuid,
-              data:entityData
-            };
-            var ent = new Usergrid.Entity(entityOptions);
-            var ct = self._list.length;
-            self._list[ct] = ent;
-          }
+        delete qs.cursor;
+    }
+    var options = {
+        method: 'GET',
+        endpoint: this._type,
+        qs: this.qs
+    };
+    this._client.request(options, function (err, data) {
+        if (err && self._client.logging) {
+            console.log('error getting collection');
+        } else {
+            //save the cursor if there is one
+            var cursor = data.cursor || null;
+            self.saveCursor(cursor);
+            if (data.entities) {
+                self.resetEntityPointer();
+                var count = data.entities.length;
+                //save entities locally
+                self._list = []; //clear the local list first
+                for (var i = 0; i < count; i++) {
+                    var uuid = data.entities[i].uuid;
+                    if (uuid) {
+                        var entityData = data.entities[i] || {};
+                        var entityOptions = {
+                            type: self._type,
+                            client: self._client,
+                            uuid: uuid,
+                            data: entityData
+                        };
+                        var ent = new Usergrid.Entity(entityOptions);
+                        var ct = self._list.length;
+                        self._list[ct] = ent;
+                    }
+                }
+            }
         }
-      }
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, data);
-    }
-  });
+        if (typeof (callback) === 'function') {
+            callback(err, data);
+        }
+    });
 }
 
 /*
@@ -1013,20 +1071,20 @@ Usergrid.Collection.prototype.fetch = function (callback) {
 *  @return {callback} callback(err, data, entity)
 */
 Usergrid.Collection.prototype.addEntity = function (options, callback) {
-  var self = this;
-  options.type = this._type;
+    var self = this;
+    options.type = this._type;
 
-  //create the new entity
-  this._client.createEntity(options, function (err, entity) {
-    if (!err) {
-      //then add the entity to the list
-      var count = self._list.length;
-      self._list[count] = entity;
-    }
-    if (typeof(callback) === 'function') {
-      callback(err, entity);
-    }
-  });
+    //create the new entity
+    this._client.createEntity(options, function (err, entity) {
+        if (!err) {
+            //then add the entity to the list
+            var count = self._list.length;
+            self._list[count] = entity;
+        }
+        if (typeof (callback) === 'function') {
+            callback(err, entity);
+        }
+    });
 }
 
 /*
@@ -1038,20 +1096,20 @@ Usergrid.Collection.prototype.addEntity = function (options, callback) {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Collection.prototype.destroyEntity = function (entity, callback) {
-  var self = this;
-  entity.destroy(function(err, data) {
-    if (err) {
-      if (self._client.logging) {
-        console.log('could not destroy entity');
-      }
-      if (typeof(callback) === 'function') {
-        callback(err, data);
-      }
-    } else {
-      //destroy was good, so repopulate the collection
-      self.fetch(callback);
-    }
-  });
+    var self = this;
+    entity.destroy(function (err, data) {
+        if (err) {
+            if (self._client.logging) {
+                console.log('could not destroy entity');
+            }
+            if (typeof (callback) === 'function') {
+                callback(err, data);
+            }
+        } else {
+            //destroy was good, so repopulate the collection
+            self.fetch(callback);
+        }
+    });
 }
 
 /*
@@ -1063,16 +1121,16 @@ Usergrid.Collection.prototype.destroyEntity = function (entity, callback) {
 *  @return {callback} callback(err, data, entity)
 */
 Usergrid.Collection.prototype.getEntityByUUID = function (uuid, callback) {
-  //get the entity from the database
-  var options = {
-    data: {
-      type: this._type,
-      uuid:uuid
-    },
-    client: this._client
-  }
-  var entity = new Usergrid.Entity(options);
-  entity.fetch(callback);
+    //get the entity from the database
+    var options = {
+        data: {
+            type: this._type,
+            uuid: uuid
+        },
+        client: this._client
+    }
+    var entity = new Usergrid.Entity(options);
+    entity.fetch(callback);
 }
 
 /*
@@ -1082,11 +1140,11 @@ Usergrid.Collection.prototype.getEntityByUUID = function (uuid, callback) {
 *  @return {object} returns an entity object
 */
 Usergrid.Collection.prototype.getFirstEntity = function () {
-  var count = this._list.length;
-  if (count > 0) {
-    return this._list[0];
-  }
-  return null;
+    var count = this._list.length;
+    if (count > 0) {
+        return this._list[0];
+    }
+    return null;
 }
 
 /*
@@ -1096,11 +1154,11 @@ Usergrid.Collection.prototype.getFirstEntity = function () {
 *  @return {object} returns an entity object
 */
 Usergrid.Collection.prototype.getLastEntity = function () {
-  var count = this._list.length;
-  if (count > 0) {
-    return this._list[count-1];
-  }
-  return null;
+    var count = this._list.length;
+    if (count > 0) {
+        return this._list[count - 1];
+    }
+    return null;
 }
 
 /*
@@ -1113,12 +1171,12 @@ Usergrid.Collection.prototype.getLastEntity = function () {
 *  @return {boolean} true if there is a next entity, false if not
 */
 Usergrid.Collection.prototype.hasNextEntity = function () {
-  var next = this._iterator + 1;
-  var hasNextElement = (next >=0 && next < this._list.length);
-  if(hasNextElement) {
-    return true;
-  }
-  return false;
+    var next = this._iterator + 1;
+    var hasNextElement = (next >= 0 && next < this._list.length);
+    if (hasNextElement) {
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -1131,12 +1189,12 @@ Usergrid.Collection.prototype.hasNextEntity = function () {
 *  @return {object} entity
 */
 Usergrid.Collection.prototype.getNextEntity = function () {
-  this._iterator++;
-  var hasNextElement = (this._iterator >= 0 && this._iterator <= this._list.length);
-  if(hasNextElement) {
-    return this._list[this._iterator];
-  }
-  return false;
+    this._iterator++;
+    var hasNextElement = (this._iterator >= 0 && this._iterator <= this._list.length);
+    if (hasNextElement) {
+        return this._list[this._iterator];
+    }
+    return false;
 }
 
 /*
@@ -1147,12 +1205,12 @@ Usergrid.Collection.prototype.getNextEntity = function () {
 *  @return {boolean} true if there is a previous entity, false if not
 */
 Usergrid.Collection.prototype.hasPrevEntity = function () {
-  var previous = this._iterator - 1;
-  var hasPreviousElement = (previous >=0 && previous < this._list.length);
-  if(hasPreviousElement) {
-    return true;
-  }
-  return false;
+    var previous = this._iterator - 1;
+    var hasPreviousElement = (previous >= 0 && previous < this._list.length);
+    if (hasPreviousElement) {
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -1162,12 +1220,12 @@ Usergrid.Collection.prototype.hasPrevEntity = function () {
 *  @return {object} entity
 */
 Usergrid.Collection.prototype.getPrevEntity = function () {
-   this._iterator--;
-   var hasPreviousElement = (this._iterator >= 0 && this._iterator <= this._list.length);
-   if(hasPreviousElement) {
-    return this.list[this._iterator];
-   }
-   return false;
+    this._iterator--;
+    var hasPreviousElement = (this._iterator >= 0 && this._iterator <= this._list.length);
+    if (hasPreviousElement) {
+        return this.list[this._iterator];
+    }
+    return false;
 }
 
 /*
@@ -1178,7 +1236,7 @@ Usergrid.Collection.prototype.getPrevEntity = function () {
 *  @return none
 */
 Usergrid.Collection.prototype.resetEntityPointer = function () {
-   this._iterator  = -1;
+    this._iterator = -1;
 }
 
 /*
@@ -1188,11 +1246,11 @@ Usergrid.Collection.prototype.resetEntityPointer = function () {
 * @method saveCursor
 * @return none
 */
-Usergrid.Collection.prototype.saveCursor = function(cursor) {
-  //if current cursor is different, grab it for next cursor
-  if (this._next !== cursor) {
-    this._next = cursor;
-  }
+Usergrid.Collection.prototype.saveCursor = function (cursor) {
+    //if current cursor is different, grab it for next cursor
+    if (this._next !== cursor) {
+        this._next = cursor;
+    }
 }
 
 /*
@@ -1202,10 +1260,10 @@ Usergrid.Collection.prototype.saveCursor = function(cursor) {
 * @method resetPaging
 * @return none
 */
-Usergrid.Collection.prototype.resetPaging = function() {
-  this._previous = [];
-  this._next = null;
-  this._cursor = null;
+Usergrid.Collection.prototype.resetPaging = function () {
+    this._previous = [];
+    this._next = null;
+    this._cursor = null;
 }
 
 /*
@@ -1215,7 +1273,7 @@ Usergrid.Collection.prototype.resetPaging = function() {
 *  @return {boolean} returns true if there is a next page of data, false otherwise
 */
 Usergrid.Collection.prototype.hasNextPage = function () {
-  return (this._next);
+    return (this._next);
 }
 
 /*
@@ -1228,14 +1286,14 @@ Usergrid.Collection.prototype.hasNextPage = function () {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Collection.prototype.getNextPage = function (callback) {
-  if (this.hasNextPage()) {
-    //set the cursor to the next page of data
-    this._previous.push(this._cursor);
-    this._cursor = this._next;
-    //empty the list
-    this._list = [];
-    this.fetch(callback);
-  }
+    if (this.hasNextPage()) {
+        //set the cursor to the next page of data
+        this._previous.push(this._cursor);
+        this._cursor = this._next;
+        //empty the list
+        this._list = [];
+        this.fetch(callback);
+    }
 }
 
 /*
@@ -1245,7 +1303,7 @@ Usergrid.Collection.prototype.getNextPage = function (callback) {
 *  @return {boolean} returns true if there is a previous page of data, false otherwise
 */
 Usergrid.Collection.prototype.hasPreviousPage = function () {
-  return (this._previous.length > 0);
+    return (this._previous.length > 0);
 }
 
 /*
@@ -1258,13 +1316,13 @@ Usergrid.Collection.prototype.hasPreviousPage = function () {
 *  @return {callback} callback(err, data)
 */
 Usergrid.Collection.prototype.getPreviousPage = function (callback) {
-  if (this.hasPreviousPage()) {
-    this._next=null; //clear out next so the comparison will find the next item
-    this._cursor = this._previous.pop();
-    //empty the list
-    this._list = [];
-    this.fetch(callback);
-  }
+    if (this.hasPreviousPage()) {
+        this._next = null; //clear out next so the comparison will find the next item
+        this._cursor = this._previous.pop();
+        //empty the list
+        this._list = [];
+        this.fetch(callback);
+    }
 }
 
 /*
@@ -1275,10 +1333,10 @@ Usergrid.Collection.prototype.getPreviousPage = function (callback) {
 * @param {string} uuid The string to test
 * @returns {Boolean} true if string is uuid
 */
-function isUUID (uuid) {
-  var uuidValueRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-  if (!uuid) return false;
-  return uuidValueRegex.test(uuid);
+function isUUID(uuid) {
+    var uuidValueRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!uuid) return false;
+    return uuidValueRegex.test(uuid);
 }
 
 
@@ -1290,30 +1348,30 @@ function isUUID (uuid) {
 *  @params {object} params - an object of name value pairs that will be urlencoded
 *  @return {string} Returns the encoded string
 */
-function encodeParams (params) {
-  tail = [];
-  var item = [];
-  if (params instanceof Array) {
-    for (i in params) {
-      item = params[i];
-      if ((item instanceof Array) && (item.length > 1)) {
-        tail.push(item[0] + "=" + encodeURIComponent(item[1]));
-      }
-    }
-  } else {
-    for (var key in params) {
-      if (params.hasOwnProperty(key)) {
-        var value = params[key];
-        if (value instanceof Array) {
-          for (i in value) {
-            item = value[i];
-            tail.push(key + "=" + encodeURIComponent(item));
-          }
-        } else {
-          tail.push(key + "=" + encodeURIComponent(value));
+function encodeParams(params) {
+    tail = [];
+    var item = [];
+    if (params instanceof Array) {
+        for (i in params) {
+            item = params[i];
+            if ((item instanceof Array) && (item.length > 1)) {
+                tail.push(item[0] + "=" + encodeURIComponent(item[1]));
+            }
         }
-      }
+    } else {
+        for (var key in params) {
+            if (params.hasOwnProperty(key)) {
+                var value = params[key];
+                if (value instanceof Array) {
+                    for (i in value) {
+                        item = value[i];
+                        tail.push(key + "=" + encodeURIComponent(item));
+                    }
+                } else {
+                    tail.push(key + "=" + encodeURIComponent(value));
+                }
+            }
+        }
     }
-  }
-  return tail.join("&");
+    return tail.join("&");
 }
